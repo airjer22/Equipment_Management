@@ -257,7 +257,7 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
           />
         </div>
 
-        <div className="p-4 grid grid-cols-2 gap-4">
+        <div className="p-4 grid grid-cols-3 gap-3">
           {filteredEquipment.map(item => {
             const isSelected = selectedEquipment.includes(item.id);
             const isAvailable = item.status === 'available';
@@ -265,8 +265,8 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
               <div
                 key={item.id}
                 onClick={() => toggleEquipmentSelect(item.id, item.status)}
-                className={`bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md transition-all ${
-                  isSelected ? 'ring-4 ring-blue-500 shadow-lg' : ''
+                className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md transition-all ${
+                  isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
                 } ${isAvailable ? 'cursor-pointer hover:shadow-lg' : 'opacity-75'}`}
               >
                 <div className="relative aspect-square">
@@ -276,11 +276,11 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
                     className="w-full h-full object-cover"
                   />
                   {isSelected && (
-                    <div className="absolute top-3 right-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                      <CheckCircle className="w-5 h-5 text-white" fill="white" />
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                      <CheckCircle className="w-4 h-4 text-white" fill="white" />
                     </div>
                   )}
-                  <div className="absolute bottom-3 left-3">
+                  <div className="absolute bottom-2 left-2">
                     <StatusBadge
                       status={getStatusLabel(item.status)}
                       variant={getStatusVariant(item.status)}
@@ -288,9 +288,9 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
                     />
                   </div>
                 </div>
-                <div className="p-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{item.name}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">ID: {item.item_id}</p>
+                <div className="p-2">
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-xs mb-0.5 truncate">{item.name}</h3>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">ID: {item.item_id}</p>
                 </div>
               </div>
             );
