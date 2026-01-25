@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { CreditCard, Lock, User } from 'lucide-react';
+import { CreditCard, Lock, User, X, Mail } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 interface CaptainLoginProps {
   onSwitchToAdmin: () => void;
@@ -12,6 +13,11 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetStudentId, setResetStudentId] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   const { signIn } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -26,6 +32,41 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handlePasswordReset(e: React.FormEvent) {
+    e.preventDefault();
+    setResetError('');
+    setResetLoading(true);
+
+    try {
+      const email = resetStudentId + '@school.edu';
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setResetSuccess(true);
+    } catch (err: any) {
+      setResetError(err.message || 'Failed to send reset email');
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
+  function handleOpenResetForm() {
+    setShowResetForm(true);
+    setResetStudentId(studentId);
+    setResetSuccess(false);
+    setResetError('');
+  }
+
+  function handleCloseResetForm() {
+    setShowResetForm(false);
+    setResetStudentId('');
+    setResetSuccess(false);
+    setResetError('');
   }
 
   return (
@@ -103,6 +144,7 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
 
             <button
               type="button"
+              onClick={handleOpenResetForm}
               className="text-sm text-blue-600 font-semibold hover:text-blue-700 transition-colors"
             >
               Forgot Password?
@@ -133,6 +175,88 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
           Need help? Contact Mr. Smith in the PE Office.
         </p>
       </div>
+
+      {showResetForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative">
+            <button
+              onClick={handleCloseResetForm}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Reset Password</h3>
+              <p className="text-gray-600">
+                Enter your Student ID and we'll send a password reset link to your school email.
+              </p>
+            </div>
+
+            {resetSuccess ? (
+              <div className="text-center py-4">
+                <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-4">
+                  Check your school email for a password reset link.
+                </div>
+                <button
+                  onClick={handleCloseResetForm}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                {resetError && (
+                  <div className="bg-red-50 text-red-700 p-3 rounded-xl text-sm">
+                    {resetError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Student ID
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={resetStudentId}
+                      onChange={(e) => setResetStudentId(e.target.value)}
+                      placeholder="Enter your ID number"
+                      required
+                      className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all"
+                    />
+                    <CreditCard className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Reset link will be sent to {resetStudentId}@school.edu
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseResetForm}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
+                  >
+                    {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
