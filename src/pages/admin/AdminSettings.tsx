@@ -33,6 +33,8 @@ export function AdminSettings() {
   const [newCategory, setNewCategory] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  const [showClearCacheConfirm, setShowClearCacheConfirm] = useState(false);
+  const [showClearDataConfirm, setShowClearDataConfirm] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -185,6 +187,51 @@ export function AdminSettings() {
   function cancelEdit() {
     setEditingCategory(null);
     setEditValue('');
+  }
+
+  async function handleClearCache() {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+
+      setShowClearCacheConfirm(false);
+      alert('Cache cleared successfully. The page will reload.');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      alert('Failed to clear cache');
+    }
+  }
+
+  async function handleClearAllData() {
+    try {
+      await handleClearCache();
+
+      const confirmDelete = confirm(
+        'WARNING: This will delete ALL data including students, equipment, and loans. This action cannot be undone. Are you absolutely sure?'
+      );
+
+      if (!confirmDelete) {
+        setShowClearDataConfirm(false);
+        return;
+      }
+
+      await supabase.from('loans').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('equipment_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+      setShowClearDataConfirm(false);
+      alert('All data cleared successfully. The page will reload.');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      alert('Failed to clear all data');
+    }
   }
 
   if (loading) {
@@ -548,11 +595,95 @@ export function AdminSettings() {
             <span className="text-sm text-gray-600 dark:text-gray-400">Build</span>
             <span className="font-medium text-gray-900 dark:text-white">20241214</span>
           </div>
-          <Button variant="danger" fullWidth>
-            Clear Cache and Data
-          </Button>
+          <div className="pt-2 space-y-2">
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => setShowClearCacheConfirm(true)}
+            >
+              Clear Cache
+            </Button>
+            <Button
+              variant="danger"
+              fullWidth
+              onClick={() => setShowClearDataConfirm(true)}
+            >
+              Clear All Data
+            </Button>
+          </div>
         </div>
       </Card>
+
+      <Modal
+        isOpen={showClearCacheConfirm}
+        onClose={() => setShowClearCacheConfirm(false)}
+        size="sm"
+        position="center"
+      >
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Clear Cache</h3>
+          <p className="text-gray-600 dark:text-gray-300">
+            This will clear all cached data and reload the application. Your database data will not be affected.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={handleClearCache}
+            >
+              Clear Cache
+            </Button>
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => setShowClearCacheConfirm(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showClearDataConfirm}
+        onClose={() => setShowClearDataConfirm(false)}
+        size="sm"
+        position="center"
+      >
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Clear All Data</h3>
+          <div className="space-y-2">
+            <p className="text-gray-600 dark:text-gray-300 font-semibold">
+              WARNING: This action cannot be undone!
+            </p>
+            <p className="text-gray-600 dark:text-gray-300">
+              This will permanently delete:
+            </p>
+            <ul className="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1">
+              <li>All student records</li>
+              <li>All equipment items</li>
+              <li>All loan history</li>
+              <li>All cached data</li>
+            </ul>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="danger"
+              fullWidth
+              onClick={handleClearAllData}
+            >
+              Delete Everything
+            </Button>
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => setShowClearDataConfirm(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
