@@ -27,6 +27,8 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showAllLoans, setShowAllLoans] = useState(false);
   const [allActiveLoans, setAllActiveLoans] = useState<any[]>([]);
+  const [showAvailableItems, setShowAvailableItems] = useState(false);
+  const [availableEquipment, setAvailableEquipment] = useState<any[]>([]);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
 
@@ -101,6 +103,22 @@ export function AdminDashboard() {
     }
   }
 
+  async function loadAvailableEquipment() {
+    try {
+      const { data: equipment } = await supabase
+        .from('equipment_items')
+        .select('*')
+        .eq('status', 'available')
+        .order('name', { ascending: true });
+
+      if (equipment) {
+        setAvailableEquipment(equipment);
+      }
+    } catch (error) {
+      console.error('Error loading available equipment:', error);
+    }
+  }
+
   async function handleReturn(loanId: string, equipmentId: string) {
     try {
       await supabase
@@ -125,6 +143,11 @@ export function AdminDashboard() {
   function handleShowAllLoans() {
     loadAllActiveLoans();
     setShowAllLoans(true);
+  }
+
+  function handleShowAvailableItems() {
+    loadAvailableEquipment();
+    setShowAvailableItems(true);
   }
 
   function getGreeting() {
@@ -244,17 +267,19 @@ export function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border border-blue-200 dark:border-blue-700">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-              <Package className="w-6 h-6 text-white" />
+        <button onClick={handleShowAvailableItems} className="w-full text-left">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border border-blue-200 dark:border-blue-700 hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-blue-700 dark:text-gray-300 font-medium">Available Items</p>
+                <p className="text-3xl font-bold text-blue-900 dark:text-white">{stats.availableItems}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-blue-700 dark:text-gray-300 font-medium">Available Items</p>
-              <p className="text-3xl font-bold text-blue-900 dark:text-white">{stats.availableItems}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </button>
 
         <button onClick={handleShowAllLoans} className="w-full text-left">
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border border-orange-200 dark:border-orange-700 hover:shadow-lg transition-shadow cursor-pointer">
@@ -405,6 +430,43 @@ export function AdminDashboard() {
                 </Card>
               );
             })
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showAvailableItems}
+        onClose={() => setShowAvailableItems(false)}
+        size="lg"
+        title="Available Equipment"
+      >
+        <div className="space-y-3">
+          {availableEquipment.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-gray-500 dark:text-gray-400">No available equipment at the moment</p>
+            </div>
+          ) : (
+            availableEquipment.map((equipment) => (
+              <Card key={equipment.id}>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Package className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-white">{equipment.name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
+                      {equipment.category} • {equipment.item_id}
+                    </p>
+                    {equipment.condition && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Condition: {equipment.condition}
+                      </p>
+                    )}
+                  </div>
+                  <StatusBadge status="Available" variant="success" size="sm" />
+                </div>
+              </Card>
+            ))
           )}
         </div>
       </Modal>
