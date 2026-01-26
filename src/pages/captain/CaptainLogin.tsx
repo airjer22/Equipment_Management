@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, Lock, User, X, Mail } from 'lucide-react';
+import { CreditCard, Lock, User, X, Mail, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -13,6 +13,7 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetStudentId, setResetStudentId] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -132,13 +133,24 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+                >
+                  {showPassword ? (
+                    <Eye className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <EyeOff className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
               </div>
             </div>
 

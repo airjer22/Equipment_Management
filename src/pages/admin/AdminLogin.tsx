@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, EyeOff, Shield, LogIn, Trophy, X, Mail } from 'lucide-react';
+import { User, EyeOff, Eye, Shield, LogIn, Trophy, X, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
@@ -12,6 +12,7 @@ export function AdminLogin({ onSportsCaptainMode }: AdminLoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -108,14 +109,24 @@ export function AdminLogin({ onSportsCaptainMode }: AdminLoginProps) {
             </label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
                 className="w-full pl-4 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all text-gray-700"
               />
-              <EyeOff className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+              >
+                {showPassword ? (
+                  <Eye className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <EyeOff className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
             </div>
             <div className="text-right mt-2">
               <button
