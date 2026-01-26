@@ -126,14 +126,14 @@ function AppContent() {
   }
 
   if (view === 'admin-login') {
-    return <AdminLogin onSportsCaptainMode={() => setView('captain-mode')} />;
+    return <AdminLogin onSportsCaptainMode={() => setView('captain-login')} />;
   }
 
   if (view === 'captain-login') {
     return <CaptainLogin onSwitchToAdmin={() => setView('admin-login')} />;
   }
 
-  return <AdminLogin onSportsCaptainMode={() => setView('captain-mode')} />;
+  return <AdminLogin onSportsCaptainMode={() => setView('captain-login')} />;
 }
 
 function App() {
