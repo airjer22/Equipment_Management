@@ -124,18 +124,27 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
     const dueTime = new Date();
     dueTime.setMinutes(dueTime.getMinutes() + BORROW_DURATION_MINUTES);
 
+    console.log('Current user:', user);
+    console.log('User ID:', user?.id);
+    console.log('Auth user:', await supabase.auth.getUser());
+
     for (const equipmentId of selectedEquipment) {
-      const { error: loanError } = await supabase.from('loans').insert({
+      const loanData = {
         student_id: selectedStudent.id,
         equipment_id: equipmentId,
         borrowed_by_user_id: user?.id,
         due_at: dueTime.toISOString(),
         status: 'active',
-      });
+      };
+
+      console.log('Inserting loan:', loanData);
+
+      const { error: loanError } = await supabase.from('loans').insert(loanData);
 
       if (loanError) {
         console.error('Error creating loan:', loanError);
-        alert(`Failed to create loan: ${loanError.message}`);
+        console.error('Full error:', JSON.stringify(loanError, null, 2));
+        alert(`Failed to create loan: ${loanError.message}\n\nUser ID: ${user?.id}\n\nCheck console for details.`);
         return;
       }
 
