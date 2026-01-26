@@ -101,20 +101,32 @@ export function NotificationModal({ isOpen, onClose, students, onStudentUpdated,
   }
 
   function getWarningLevel(student: AtRiskStudent): string {
-    if (student.total_suspensions === 0) {
+    if (student.total_suspensions > 0) {
+      return 'Suspension Eligible';
+    }
+
+    if (student.late_returns_since_suspension === 1) {
       return 'First Warning';
-    } else if (student.total_suspensions === 1) {
+    } else if (student.late_returns_since_suspension === 2) {
       return 'Second Warning';
+    } else if (student.late_returns_since_suspension === 3) {
+      return 'Final Warning';
     } else {
-      return `Warning ${student.total_suspensions + 1}`;
+      return 'Suspension Eligible';
     }
   }
 
   function getWarningColor(student: AtRiskStudent): string {
-    if (student.total_suspensions === 0) {
+    if (student.total_suspensions > 0) {
+      return 'bg-red-50 text-red-700 border-red-200';
+    }
+
+    if (student.late_returns_since_suspension === 1) {
       return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-    } else if (student.total_suspensions === 1) {
+    } else if (student.late_returns_since_suspension === 2) {
       return 'bg-orange-50 text-orange-700 border-orange-200';
+    } else if (student.late_returns_since_suspension === 3) {
+      return 'bg-red-50 text-red-700 border-red-200';
     } else {
       return 'bg-red-50 text-red-700 border-red-200';
     }
@@ -140,8 +152,8 @@ export function NotificationModal({ isOpen, onClose, students, onStudentUpdated,
             <div className="flex items-start gap-2">
               <TrendingUp className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-xs text-blue-800">
-                <p className="font-semibold mb-1">Escalating Warning System</p>
-                <p>Thresholds increase after each suspension: 3 → 5 → 6 → 7...</p>
+                <p className="font-semibold mb-1">Progressive Warning System</p>
+                <p>1st offense → 2nd offense → Final Warning → Suspension. After any suspension, each late return triggers immediate suspension.</p>
               </div>
             </div>
           </div>

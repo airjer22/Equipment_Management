@@ -11,10 +11,12 @@
   
   3. Notes
     - Total late returns are NEVER reset - always tracked in full history
-    - Only the warning threshold escalates based on suspension history
-    - First warning: 3 late returns
-    - Second warning: 2 more late returns (5 total)
-    - Subsequent warnings: after each additional late return
+    - Warning system:
+      - First offense: First Warning
+      - Second offense: Second Warning
+      - Third offense: Final Warning
+      - Fourth offense: Suspension eligibility
+      - After any suspension: Each late return triggers immediate suspension eligibility
 */
 
 -- Function to automatically unblacklist students when their suspension ends
@@ -99,22 +101,29 @@ CREATE OR REPLACE FUNCTION get_warning_threshold(student_uuid uuid)
 RETURNS integer AS $$
 DECLARE
   suspension_count integer;
+  late_returns_since_suspension integer;
   threshold integer;
 BEGIN
   suspension_count := count_student_suspensions(student_uuid);
-  
-  -- First warning: 3 late returns
-  -- Second warning: 5 late returns (3 + 2)
-  -- Third+ warnings: 6, 7, 8, etc. (increment by 1 each time)
-  IF suspension_count = 0 THEN
-    threshold := 3;
-  ELSIF suspension_count = 1 THEN
-    threshold := 5;
-  ELSE
-    -- After 2 suspensions, threshold is 6, 7, 8, etc.
-    threshold := 5 + suspension_count - 1;
+  late_returns_since_suspension := get_late_returns_since_last_suspension(student_uuid);
+
+  -- If student has been suspended before, any late return triggers suspension eligibility
+  IF suspension_count > 0 THEN
+    RETURN 1;
   END IF;
-  
+
+  -- For students never suspended: progressive warnings
+  -- 1st offense = First Warning (threshold 1)
+  -- 2nd offense = Second Warning (threshold 2)
+  -- 3rd offense = Final Warning (threshold 3)
+  -- 4th offense = Suspension eligibility (threshold 4)
+  -- Calculate next threshold based on current late returns
+  IF late_returns_since_suspension < 4 THEN
+    threshold := late_returns_since_suspension + 1;
+  ELSE
+    threshold := 4;
+  END IF;
+
   RETURN threshold;
 END;
 $$ LANGUAGE plpgsql;
