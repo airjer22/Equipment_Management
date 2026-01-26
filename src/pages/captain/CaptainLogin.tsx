@@ -27,7 +27,8 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
     setLoading(true);
 
     try {
-      await signIn(studentId + '@school.edu', password);
+      const email = studentId.includes('@') ? studentId : studentId + '@school.edu';
+      await signIn(email, password);
     } catch (err: any) {
       setError(err.message || 'Invalid credentials');
     } finally {
@@ -111,7 +112,7 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
 
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Student ID
+                Email or Student ID
               </label>
               <div className="relative">
                 <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -119,7 +120,7 @@ export function CaptainLogin({ onSwitchToAdmin }: CaptainLoginProps) {
                   type="text"
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
-                  placeholder="Enter your ID number"
+                  placeholder="Enter your email or ID number"
                   required
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
