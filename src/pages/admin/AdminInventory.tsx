@@ -252,7 +252,7 @@ export function AdminInventory() {
         onChange={setStatusFilter}
       />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         {filteredItems.map((item) => (
           <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="relative aspect-square bg-gray-100">
@@ -264,10 +264,10 @@ export function AdminInventory() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="w-12 h-12 text-gray-400" />
+                  <ImageIcon className="w-8 h-8 text-gray-400" />
                 </div>
               )}
-              <div className="absolute top-2 left-2">
+              <div className="absolute top-1.5 left-1.5">
                 <StatusBadge
                   status={item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                   variant={item.status as any}
@@ -275,24 +275,24 @@ export function AdminInventory() {
                 />
               </div>
             </div>
-            <div className="p-3 space-y-2">
+            <div className="p-2 space-y-1.5">
               <div>
-                <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
-                <p className="text-xs text-gray-500">ID: {item.item_id}</p>
+                <h3 className="font-semibold text-gray-900 text-xs truncate">{item.name}</h3>
+                <p className="text-xs text-gray-500 truncate">ID: {item.item_id}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <button
                   onClick={() => openEditModal(item)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-0.5 px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors text-xs font-medium"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
+                  <Edit2 className="w-3 h-3" />
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(item.id)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                  className="flex-1 flex items-center justify-center gap-0.5 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors text-xs font-medium"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3 h-3" />
                   Delete
                 </button>
               </div>
