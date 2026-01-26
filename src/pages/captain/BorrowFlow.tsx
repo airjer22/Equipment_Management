@@ -121,29 +121,37 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
   async function handleConfirm() {
     if (!selectedStudent || selectedEquipment.length === 0) return;
 
-    try {
-      const dueTime = new Date();
-      dueTime.setMinutes(dueTime.getMinutes() + BORROW_DURATION_MINUTES);
+    const dueTime = new Date();
+    dueTime.setMinutes(dueTime.getMinutes() + BORROW_DURATION_MINUTES);
 
-      for (const equipmentId of selectedEquipment) {
-        await supabase.from('loans').insert({
-          student_id: selectedStudent.id,
-          equipment_id: equipmentId,
-          borrowed_by_user_id: user?.id,
-          due_at: dueTime.toISOString(),
-          status: 'active',
-        });
+    for (const equipmentId of selectedEquipment) {
+      const { error: loanError } = await supabase.from('loans').insert({
+        student_id: selectedStudent.id,
+        equipment_id: equipmentId,
+        borrowed_by_user_id: user?.id,
+        due_at: dueTime.toISOString(),
+        status: 'active',
+      });
 
-        await supabase
-          .from('equipment_items')
-          .update({ status: 'borrowed' })
-          .eq('id', equipmentId);
+      if (loanError) {
+        console.error('Error creating loan:', loanError);
+        alert(`Failed to create loan: ${loanError.message}`);
+        return;
       }
 
-      onComplete();
-    } catch (error) {
-      console.error('Error creating loan:', error);
+      const { error: equipmentError } = await supabase
+        .from('equipment_items')
+        .update({ status: 'borrowed' })
+        .eq('id', equipmentId);
+
+      if (equipmentError) {
+        console.error('Error updating equipment:', equipmentError);
+        alert(`Failed to update equipment status: ${equipmentError.message}`);
+        return;
+      }
     }
+
+    onComplete();
   }
 
   if (step === 'student') {
