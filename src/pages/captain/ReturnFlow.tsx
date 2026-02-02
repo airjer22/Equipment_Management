@@ -67,18 +67,45 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
 
   async function handleReturn(loan: any) {
     try {
+      console.log('Starting return process for loan:', loan.id);
       const returnedAt = new Date().toISOString();
       const isLate = new Date(loan.due_at) < new Date();
 
-      await supabase
+      console.log('Updating loan status to returned...');
+      const { data: loanData, error: loanError } = await supabase
         .from('loans')
         .update({ returned_at: returnedAt, status: 'returned' })
-        .eq('id', loan.id);
+        .eq('id', loan.id)
+        .select();
 
-      await supabase
+      console.log('Loan update result:', { data: loanData, error: loanError });
+
+      if (loanError) {
+        console.error('Error updating loan:', loanError);
+        alert(`Failed to return item: ${loanError.message}`);
+        return;
+      }
+
+      if (!loanData || loanData.length === 0) {
+        console.error('No rows updated for loan - likely a permission issue');
+        alert('Failed to update loan - you may not have permission to return this item');
+        return;
+      }
+
+      console.log('Updating equipment status to available...');
+      const { data: equipmentData, error: equipmentError } = await supabase
         .from('equipment_items')
         .update({ status: 'available' })
-        .eq('id', loan.equipment_id);
+        .eq('id', loan.equipment_id)
+        .select();
+
+      console.log('Equipment update result:', { data: equipmentData, error: equipmentError });
+
+      if (equipmentError) {
+        console.error('Error updating equipment:', equipmentError);
+        alert(`Failed to update equipment: ${equipmentError.message}`);
+        return;
+      }
 
       studentStorage.decrementActiveLoan(loan.student_id);
 
@@ -86,11 +113,13 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
         studentStorage.recordLateReturn(loan.student_id);
       }
 
+      console.log('Return process completed successfully');
       setLastReturned(loan);
       setShowToast(true);
       loadLoans();
     } catch (error) {
       console.error('Error returning item:', error);
+      alert('An unexpected error occurred while returning the item.');
     }
   }
 
@@ -98,20 +127,37 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
     if (!lastReturned) return;
 
     try {
-      await supabase
+      const { data: loanData, error: loanError } = await supabase
         .from('loans')
         .update({ returned_at: null, status: 'active' })
-        .eq('id', lastReturned.id);
+        .eq('id', lastReturned.id)
+        .select();
 
-      await supabase
+      if (loanError) {
+        console.error('Error undoing loan return:', loanError);
+        alert(`Failed to undo return: ${loanError.message}`);
+        return;
+      }
+
+      const { data: equipmentData, error: equipmentError } = await supabase
         .from('equipment_items')
         .update({ status: 'borrowed' })
-        .eq('id', lastReturned.equipment_id);
+        .eq('id', lastReturned.equipment_id)
+        .select();
+
+      if (equipmentError) {
+        console.error('Error updating equipment:', equipmentError);
+        alert(`Failed to undo equipment status: ${equipmentError.message}`);
+        return;
+      }
+
+      studentStorage.incrementLoan(lastReturned.student_id);
 
       loadLoans();
       setShowToast(false);
     } catch (error) {
       console.error('Error undoing return:', error);
+      alert('An unexpected error occurred while undoing the return.');
     }
   }
 
