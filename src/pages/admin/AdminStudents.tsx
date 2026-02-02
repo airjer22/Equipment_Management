@@ -197,6 +197,28 @@ export function AdminStudents() {
     }
   }
 
+  function parseCSVLine(line: string): string[] {
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    values.push(current.trim());
+    return values;
+  }
+
   async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>, type: 'csv' | 'excel') {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -214,7 +236,7 @@ export function AdminStudents() {
           throw new Error('CSV file must have headers and at least one data row');
         }
 
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
         const nameIndex = headers.findIndex(h => h.includes('name'));
         const classIndex = headers.findIndex(h => h.includes('class'));
 
@@ -223,7 +245,7 @@ export function AdminStudents() {
         }
 
         data = lines.slice(1).map(line => {
-          const values = line.split(',').map(v => v.trim());
+          const values = parseCSVLine(line);
           return {
             full_name: values[nameIndex],
             class_name: values[classIndex],
