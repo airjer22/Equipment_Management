@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import { AdminLogin } from './pages/admin/AdminLogin';
@@ -24,6 +24,12 @@ function AppContent() {
   const [adminTab, setAdminTab] = useState<AdminTab>('home');
   const [captainTab, setCaptainTab] = useState<CaptainTab>('home');
   const [captainView, setCaptainView] = useState<CaptainView>('dashboard');
+
+  useEffect(() => {
+    if (!loading && !user && view !== 'admin-login' && view !== 'captain-login' && view !== 'captain-mode') {
+      setView('admin-login');
+    }
+  }, [user, loading, view]);
 
   if (loading) {
     return (
