@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Package, AlertTriangle, Clock, ArrowRight, X, Edit2, Check } from 'lucide-react';
+import { Package, AlertTriangle, Clock, ArrowRight, X, CreditCard as Edit2, Check } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { StatusBadge } from '../../components/StatusBadge';
