@@ -14,19 +14,12 @@ interface CaptainDashboardProps {
 interface LoanWithStudent {
   id: string;
   student_id: string;
+  student_name: string;
+  student_email: string;
+  student_enrollment_number: string;
   equipment_id: string;
   borrowed_at: string;
   due_at: string;
-  student: {
-    id: string;
-    student_id: string;
-    full_name: string;
-    year_group: string;
-    house: string;
-    avatar_url: string;
-    trust_score: number;
-    is_blacklisted: boolean;
-  };
   equipment_items: {
     name: string;
     item_id: string;
@@ -91,19 +84,12 @@ export function CaptainDashboard({ onBorrow, onReturn }: CaptainDashboardProps) 
         .select(`
           id,
           student_id,
+          student_name,
+          student_email,
+          student_enrollment_number,
           equipment_id,
           borrowed_at,
           due_at,
-          students (
-            id,
-            student_id,
-            full_name,
-            year_group,
-            house,
-            avatar_url,
-            trust_score,
-            is_blacklisted
-          ),
           equipment_items (
             name,
             item_id
@@ -125,10 +111,12 @@ export function CaptainDashboard({ onBorrow, onReturn }: CaptainDashboardProps) 
         const loansWithStudent: LoanWithStudent[] = filteredLoans.map(loan => ({
           id: loan.id,
           student_id: loan.student_id,
+          student_name: loan.student_name,
+          student_email: loan.student_email,
+          student_enrollment_number: loan.student_enrollment_number,
           equipment_id: loan.equipment_id,
           borrowed_at: loan.borrowed_at,
           due_at: loan.due_at,
-          student: Array.isArray(loan.students) ? loan.students[0] : loan.students,
           equipment_items: Array.isArray(loan.equipment_items) ? loan.equipment_items[0] : loan.equipment_items,
         }));
 
@@ -291,21 +279,19 @@ export function CaptainDashboard({ onBorrow, onReturn }: CaptainDashboardProps) 
               const daysOverdue = isOverdue ? getDaysOverdue(loan.due_at) : 0;
 
               return (
-                <button
+                <div
                   key={loan.id}
-                  onClick={() => handleStudentClick(loan.student)}
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition-all text-left"
+                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4"
                 >
                   <div className="flex items-center gap-4">
                     <Avatar
-                      src={loan.student?.avatar_url}
-                      name={loan.student?.full_name}
+                      name={loan.student_name || 'Unknown'}
                       size="md"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 dark:text-white">{loan.student?.full_name}</h4>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">{loan.student_name || 'Unknown Student'}</h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        {loan.student?.year_group} • {loan.student?.house}
+                        {loan.student_enrollment_number || 'N/A'}
                       </p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                         {loan.equipment_items?.name} ({loan.equipment_items?.item_id})
@@ -321,18 +307,8 @@ export function CaptainDashboard({ onBorrow, onReturn }: CaptainDashboardProps) 
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`text-2xl font-bold ${
-                        loan.student?.trust_score >= 80 ? 'text-green-600 dark:text-green-400' :
-                        loan.student?.trust_score >= 50 ? 'text-yellow-600 dark:text-yellow-400' :
-                        'text-red-600 dark:text-red-400'
-                      }`}>
-                        {Math.round(loan.student?.trust_score || 50)}%
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Trust</p>
-                    </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

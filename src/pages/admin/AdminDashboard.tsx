@@ -53,7 +53,7 @@ export function AdminDashboard() {
         supabase.from('equipment_items').select('status'),
         supabase
           .from('loans')
-          .select('*, student:students(*), equipment:equipment_items(*)')
+          .select('*, equipment:equipment_items(*)')
           .is('returned_at', null)
           .order('due_at', { ascending: true }),
       ]);
@@ -91,7 +91,7 @@ export function AdminDashboard() {
     try {
       const { data: loans } = await supabase
         .from('loans')
-        .select('*, student:students(*), equipment:equipment_items(*)')
+        .select('*, equipment:equipment_items(*)')
         .is('returned_at', null)
         .order('borrowed_at', { ascending: false });
 
@@ -314,7 +314,7 @@ export function AdminDashboard() {
                           Overdue by {getOverdueDuration(loan.due_at)}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                          Borrowed by {loan.student?.full_name}
+                          Borrowed by {loan.student_name || 'Unknown Student'}
                         </p>
                       </div>
                       <Button
@@ -357,7 +357,7 @@ export function AdminDashboard() {
                     <div>
                       <p className="font-semibold text-gray-900 dark:text-white">{loan.equipment?.name}</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        {loan.student?.full_name} • {getTimeAgo(loan.borrowed_at)}
+                        {loan.student_name || 'Unknown Student'} • {getTimeAgo(loan.borrowed_at)}
                       </p>
                     </div>
                   </div>
@@ -389,8 +389,7 @@ export function AdminDashboard() {
                 <Card key={loan.id} className={isOverdue ? 'border-red-300 dark:border-red-700' : ''}>
                   <div className="flex items-start gap-3">
                     <Avatar
-                      src={loan.student?.avatar_url}
-                      name={loan.student?.full_name || 'Unknown'}
+                      name={loan.student_name || 'Unknown'}
                       size="md"
                     />
                     <div className="flex-1 min-w-0">
@@ -402,10 +401,7 @@ export function AdminDashboard() {
                           </p>
                           <div className="flex items-center gap-2 mt-2">
                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                              <span className="font-medium">{loan.student?.full_name}</span>
-                              {loan.student?.year_group && (
-                                <span className="text-gray-500 dark:text-gray-400"> • {loan.student.year_group}</span>
-                              )}
+                              <span className="font-medium">{loan.student_name || 'Unknown Student'}</span>
                             </p>
                           </div>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
