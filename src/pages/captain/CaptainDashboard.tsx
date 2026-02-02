@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowUpRight, ArrowDownLeft, AlertTriangle, Calendar, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { studentStorage } from '../../lib/localStorage';
 import { Modal } from '../../components/Modal';
 import { Avatar } from '../../components/Avatar';
 import { StudentProfileModal } from '../../components/StudentProfileModal';
@@ -14,15 +15,17 @@ interface CaptainDashboardProps {
 interface LoanWithStudent {
   id: string;
   student_id: string;
-  student_name: string;
-  student_email: string;
-  student_enrollment_number: string;
   equipment_id: string;
   borrowed_at: string;
   due_at: string;
   equipment_items: {
     name: string;
     item_id: string;
+  };
+  student?: {
+    name: string;
+    class: string;
+    house?: string;
   };
 }
 
@@ -84,9 +87,6 @@ export function CaptainDashboard({ onBorrow, onReturn }: CaptainDashboardProps) 
         .select(`
           id,
           student_id,
-          student_name,
-          student_email,
-          student_enrollment_number,
           equipment_id,
           borrowed_at,
           due_at,
@@ -108,17 +108,22 @@ export function CaptainDashboard({ onBorrow, onReturn }: CaptainDashboardProps) 
           filteredLoans = data.filter(loan => new Date(loan.due_at) < now);
         }
 
-        const loansWithStudent: LoanWithStudent[] = filteredLoans.map(loan => ({
-          id: loan.id,
-          student_id: loan.student_id,
-          student_name: loan.student_name,
-          student_email: loan.student_email,
-          student_enrollment_number: loan.student_enrollment_number,
-          equipment_id: loan.equipment_id,
-          borrowed_at: loan.borrowed_at,
-          due_at: loan.due_at,
-          equipment_items: Array.isArray(loan.equipment_items) ? loan.equipment_items[0] : loan.equipment_items,
-        }));
+        const loansWithStudent: LoanWithStudent[] = filteredLoans.map(loan => {
+          const student = studentStorage.getById(loan.student_id);
+          return {
+            id: loan.id,
+            student_id: loan.student_id,
+            equipment_id: loan.equipment_id,
+            borrowed_at: loan.borrowed_at,
+            due_at: loan.due_at,
+            equipment_items: Array.isArray(loan.equipment_items) ? loan.equipment_items[0] : loan.equipment_items,
+            student: student ? {
+              name: student.name,
+              class: student.class,
+              house: student.house,
+            } : undefined,
+          };
+        });
 
         setLoans(loansWithStudent);
       }
@@ -285,13 +290,13 @@ export function CaptainDashboard({ onBorrow, onReturn }: CaptainDashboardProps) 
                 >
                   <div className="flex items-center gap-4">
                     <Avatar
-                      name={loan.student_name || 'Unknown'}
+                      name={loan.student?.name || 'Unknown'}
                       size="md"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 dark:text-white">{loan.student_name || 'Unknown Student'}</h4>
+                      <h4 className="font-semibold text-gray-900 dark:text-white">{loan.student?.name || 'Unknown Student'}</h4>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        {loan.student_enrollment_number || 'N/A'}
+                        {loan.student?.class || 'N/A'}
                       </p>
                       <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                         {loan.equipment_items?.name} ({loan.equipment_items?.item_id})

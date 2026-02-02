@@ -7,6 +7,7 @@ import { EquipmentAnalytics } from '../../components/EquipmentAnalytics';
 import { Modal } from '../../components/Modal';
 import { Avatar } from '../../components/Avatar';
 import { supabase } from '../../lib/supabase';
+import { studentStorage } from '../../lib/localStorage';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface DashboardStats {
@@ -71,8 +72,16 @@ export function AdminDashboard() {
 
       if (loansRes.data) {
         const now = new Date();
-        const overdue = loansRes.data.filter(loan => new Date(loan.due_at) < now);
-        const active = loansRes.data.filter(loan => new Date(loan.due_at) >= now);
+        const loansWithStudents = loansRes.data.map(loan => {
+          const student = studentStorage.getById(loan.student_id);
+          return {
+            ...loan,
+            student_name: student?.name || 'Unknown Student',
+          };
+        });
+
+        const overdue = loansWithStudents.filter(loan => new Date(loan.due_at) < now);
+        const active = loansWithStudents.filter(loan => new Date(loan.due_at) >= now);
 
         setStats(prev => ({
           ...prev,
@@ -96,7 +105,14 @@ export function AdminDashboard() {
         .order('borrowed_at', { ascending: false });
 
       if (loans) {
-        setAllActiveLoans(loans);
+        const loansWithStudents = loans.map(loan => {
+          const student = studentStorage.getById(loan.student_id);
+          return {
+            ...loan,
+            student_name: student?.name || 'Unknown Student',
+          };
+        });
+        setAllActiveLoans(loansWithStudents);
       }
     } catch (error) {
       console.error('Error loading all active loans:', error);

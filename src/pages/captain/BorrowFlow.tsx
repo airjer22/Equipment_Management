@@ -129,9 +129,6 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
     for (const equipmentId of selectedEquipment) {
       const { error: loanError } = await supabase.from('loans').insert({
         student_id: selectedStudent.id,
-        student_name: selectedStudent.name,
-        student_email: selectedStudent.email || null,
-        student_enrollment_number: selectedStudent.class || null,
         equipment_id: equipmentId,
         borrowed_by_user_id: user?.id,
         due_at: dueTime.toISOString(),
