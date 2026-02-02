@@ -27,11 +27,12 @@ export function AdminInventory() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<EquipmentItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     item_id: '',
     name: '',
-    category: 'Basketball',
+    category: '',
     status: 'available' as const,
     condition_notes: '',
   });
@@ -43,6 +44,7 @@ export function AdminInventory() {
 
   useEffect(() => {
     loadItems();
+    loadCategories();
   }, []);
 
   useEffect(() => {
@@ -62,6 +64,20 @@ export function AdminInventory() {
       console.error('Error loading items:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadCategories() {
+    try {
+      const { data, error } = await supabase
+        .from('equipment_categories')
+        .select('name')
+        .order('name');
+
+      if (error) throw error;
+      setCategories(data?.map(cat => cat.name) || []);
+    } catch (error) {
+      console.error('Error loading categories:', error);
     }
   }
 
@@ -210,7 +226,7 @@ export function AdminInventory() {
     setFormData({
       item_id: '',
       name: '',
-      category: 'Basketball',
+      category: categories[0] || '',
       status: 'available',
       condition_notes: '',
     });
@@ -395,13 +411,17 @@ export function AdminInventory() {
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
             >
-              <option value="Basketball">Basketball</option>
-              <option value="Football">Football</option>
-              <option value="Soccer">Soccer</option>
-              <option value="Tennis">Tennis</option>
-              <option value="Volleyball">Volleyball</option>
-              <option value="Other">Other</option>
+              {categories.length === 0 ? (
+                <option value="">No categories available</option>
+              ) : (
+                categories.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 

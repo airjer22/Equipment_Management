@@ -98,20 +98,25 @@ export function AdminSettings() {
 
   async function loadCategories() {
     try {
-      const { data, error } = await supabase
-        .from('equipment_items')
-        .select('category');
+      const [categoriesResult, equipmentResult] = await Promise.all([
+        supabase.from('equipment_categories').select('name'),
+        supabase.from('equipment_items').select('category')
+      ]);
 
-      if (error) throw error;
+      if (categoriesResult.error) throw categoriesResult.error;
+      if (equipmentResult.error) throw equipmentResult.error;
 
-      const categoryCounts = data.reduce((acc: Record<string, number>, item) => {
+      const categoryCounts = equipmentResult.data.reduce((acc: Record<string, number>, item) => {
         const cat = item.category || 'Uncategorized';
         acc[cat] = (acc[cat] || 0) + 1;
         return acc;
       }, {});
 
-      const categoryList: Category[] = Object.entries(categoryCounts)
-        .map(([name, count]) => ({ name, count }))
+      const categoryList: Category[] = categoriesResult.data
+        .map(cat => ({
+          name: cat.name,
+          count: categoryCounts[cat.name] || 0
+        }))
         .sort((a, b) => a.name.localeCompare(b.name));
 
       setCategories(categoryList);
@@ -135,11 +140,18 @@ export function AdminSettings() {
         return;
       }
 
-      setCategories([...categories, { name: newCategory.trim(), count: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
+      const { error } = await supabase
+        .from('equipment_categories')
+        .insert({ name: newCategory.trim() });
+
+      if (error) throw error;
+
+      await loadCategories();
       setNewCategory('');
       setShowAddCategory(false);
     } catch (error) {
       console.error('Error adding category:', error);
+      alert('Failed to add category');
     }
   }
 
@@ -150,12 +162,19 @@ export function AdminSettings() {
     }
 
     try {
-      const { error } = await supabase
-        .from('equipment_items')
-        .update({ category: newName.trim() })
-        .eq('category', oldName);
+      const [categoryUpdate, equipmentUpdate] = await Promise.all([
+        supabase
+          .from('equipment_categories')
+          .update({ name: newName.trim(), updated_at: new Date().toISOString() })
+          .eq('name', oldName),
+        supabase
+          .from('equipment_items')
+          .update({ category: newName.trim() })
+          .eq('category', oldName)
+      ]);
 
-      if (error) throw error;
+      if (categoryUpdate.error) throw categoryUpdate.error;
+      if (equipmentUpdate.error) throw equipmentUpdate.error;
 
       await loadCategories();
       setEditingCategory(null);
@@ -175,8 +194,20 @@ export function AdminSettings() {
       return;
     }
 
-    setCategories(categories.filter(c => c.name !== categoryName));
-    setDeletingCategory(null);
+    try {
+      const { error } = await supabase
+        .from('equipment_categories')
+        .delete()
+        .eq('name', categoryName);
+
+      if (error) throw error;
+
+      await loadCategories();
+      setDeletingCategory(null);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Failed to delete category');
+    }
   }
 
   function startEdit(category: string) {
