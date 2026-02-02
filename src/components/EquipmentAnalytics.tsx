@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, TrendingUp } from 'lucide-react';
+import { BarChart3, TrendingUp, RotateCcw } from 'lucide-react';
 import { Card } from './Card';
+import { Modal } from './Modal';
+import { Button } from './Button';
 import { supabase } from '../lib/supabase';
 
 type TimePeriod = 'day' | 'week' | 'month' | 'year';
@@ -16,6 +18,8 @@ export function EquipmentAnalytics() {
   const [stats, setStats] = useState<CategoryStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalBorrows, setTotalBorrows] = useState(0);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     loadAnalytics();
@@ -96,6 +100,34 @@ export function EquipmentAnalytics() {
     }
   }
 
+  async function handleReset() {
+    setResetting(true);
+    try {
+      const { data: loans } = await supabase
+        .from('loans')
+        .select('equipment_id');
+
+      if (loans) {
+        await supabase
+          .from('equipment_items')
+          .update({ status: 'available' })
+          .in('id', loans.map(l => l.equipment_id));
+      }
+
+      await supabase
+        .from('loans')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      setShowResetModal(false);
+      await loadAnalytics();
+    } catch (error) {
+      console.error('Error resetting analytics:', error);
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -103,6 +135,14 @@ export function EquipmentAnalytics() {
           <BarChart3 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Equipment Usage Analytics</h3>
         </div>
+        <button
+          onClick={() => setShowResetModal(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          title="Reset analytics data"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Reset
+        </button>
       </div>
 
       <Card>
@@ -191,6 +231,39 @@ export function EquipmentAnalytics() {
           )}
         </div>
       </Card>
+
+      <Modal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        title="Reset Analytics Data"
+      >
+        <div className="space-y-4">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              <span className="font-semibold">Warning:</span> This will permanently delete all loan history and reset all equipment to available status. This action cannot be undone.
+            </p>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Use this feature for testing purposes. All borrowing records will be removed from the database.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="ghost"
+              onClick={() => setShowResetModal(false)}
+              disabled={resetting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleReset}
+              disabled={resetting}
+            >
+              {resetting ? 'Resetting...' : 'Reset All Data'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
