@@ -6,6 +6,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { supabase } from '../../lib/supabase';
+import { studentStorage } from '../../lib/localStorage';
 import { useAuth } from '../../contexts/AuthContext';
 
 const BORROW_DURATION_MINUTES = 60; // 1 hour default duration
@@ -35,9 +36,10 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
     if (step === 'equipment') filterEquipment();
   }, [equipment, searchQuery]);
 
-  async function loadStudents() {
-    const { data } = await supabase.from('students').select('*').order('full_name');
-    if (data) setStudents(data);
+  function loadStudents() {
+    const data = studentStorage.getAll();
+    const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+    setStudents(sorted);
   }
 
   async function loadEquipment() {
@@ -52,8 +54,8 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
     let filtered = students;
     if (searchQuery) {
       filtered = filtered.filter(s =>
-        s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.class_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.class?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     setFilteredStudents(filtered);
@@ -149,6 +151,8 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
         alert(`Failed to update equipment status: ${equipmentError.message}`);
         return;
       }
+
+      studentStorage.incrementLoan(selectedStudent.id);
     }
 
     onComplete();
@@ -180,15 +184,15 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
             >
               <div className="flex items-center gap-3">
                 <Avatar
-                  src={student.avatar_url}
-                  name={student.full_name}
+                  src={null}
+                  name={student.name}
                   size="md"
                   showStatus={!student.is_blacklisted}
                   statusColor={student.is_blacklisted ? 'red' : 'green'}
                 />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{student.full_name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Class {student.class_name}</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{student.name}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Class {student.class}</p>
                 </div>
                 <Button
                   size="sm"
@@ -213,31 +217,11 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
               <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-              {selectedStudent?.full_name} is Restricted
+              {selectedStudent?.name} is Restricted
             </h3>
             <p className="text-gray-600 dark:text-gray-300">
-              This student is currently unable to borrow equipment.
+              This student is currently unable to borrow equipment. Contact admin for details.
             </p>
-            {selectedStudent?.blacklist_end_date && (
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-left space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
-                  <span className="text-sm text-red-600 dark:text-red-400 font-semibold">Blacklisted</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Ban Lifts On:</span>
-                  <span className="text-sm text-gray-900 dark:text-white">
-                    {new Date(selectedStudent.blacklist_end_date).toLocaleDateString()}
-                  </span>
-                </div>
-                {selectedStudent.blacklist_reason && (
-                  <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Reason:</span>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{selectedStudent.blacklist_reason}</p>
-                  </div>
-                )}
-              </div>
-            )}
             <Button variant="primary" fullWidth onClick={() => setShowBlacklistModal(false)}>
               Okay, Got it
             </Button>
@@ -347,10 +331,10 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Lending To</h3>
             <div className="flex items-center gap-3">
-              <Avatar src={selectedStudent?.avatar_url} name={selectedStudent?.full_name} size="lg" />
+              <Avatar src={null} name={selectedStudent?.name} size="lg" />
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white">{selectedStudent?.full_name}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">{selectedStudent?.class_name}</p>
+                <h4 className="font-semibold text-gray-900 dark:text-white">{selectedStudent?.name}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{selectedStudent?.class}</p>
               </div>
             </div>
           </div>

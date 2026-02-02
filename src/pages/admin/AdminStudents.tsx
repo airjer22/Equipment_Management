@@ -6,23 +6,10 @@ import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { StudentProfileModal } from '../../components/StudentProfileModal';
 import { supabase } from '../../lib/supabase';
+import { studentStorage, Student } from '../../lib/localStorage';
 import { Calendar, Plus, Upload, FileText, FileSpreadsheet, Trash2, User, CheckSquare, Square } from 'lucide-react';
 import { Toast } from '../../components/Toast';
 import * as XLSX from 'xlsx';
-
-interface Student {
-  id: string;
-  student_id: string;
-  full_name: string;
-  year_group: string;
-  class_name: string | null;
-  house: string | null;
-  avatar_url: string | null;
-  trust_score: number;
-  is_blacklisted: boolean;
-  blacklist_end_date: string | null;
-  blacklist_reason: string | null;
-}
 
 export function AdminStudents() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -62,15 +49,11 @@ export function AdminStudents() {
     setSelectedStudents(new Set());
   }, [students, searchQuery]);
 
-  async function loadStudents() {
+  function loadStudents() {
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .order('full_name', { ascending: true });
-
-      if (error) throw error;
-      setStudents(data || []);
+      const data = studentStorage.getAll();
+      const sorted = data.sort((a, b) => a.name.localeCompare(b.name));
+      setStudents(sorted);
     } catch (error) {
       console.error('Error loading students:', error);
     } finally {
@@ -100,8 +83,8 @@ export function AdminStudents() {
     if (searchQuery) {
       filtered = filtered.filter(
         (student) =>
-          student.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          student.class_name?.toLowerCase().includes(searchQuery.toLowerCase())
+          student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          student.class?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -141,16 +124,13 @@ export function AdminStudents() {
     }
   }
 
-  async function handleBulkDelete() {
+  function handleBulkDelete() {
     if (selectedStudents.size === 0) return;
 
     try {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .in('id', Array.from(selectedStudents));
-
-      if (error) throw error;
+      const currentStudents = studentStorage.getAll();
+      const remaining = currentStudents.filter(s => !selectedStudents.has(s.id));
+      studentStorage.save(remaining);
 
       setToast({
         message: `Successfully deleted ${selectedStudents.size} student${selectedStudents.size > 1 ? 's' : ''}`,
@@ -165,25 +145,21 @@ export function AdminStudents() {
     }
   }
 
-  async function handleManualSubmit(e: React.FormEvent) {
+  function handleManualSubmit(e: React.FormEvent) {
     e.preventDefault();
     setImporting(true);
 
     try {
-      const studentId = `STU${Date.now().toString().slice(-6)}`;
-
-      const { error } = await supabase
-        .from('students')
-        .insert({
-          student_id: studentId,
-          full_name: manualForm.full_name,
-          class_name: manualForm.class_name,
-          year_group: 'Year 7',
-          trust_score: 100,
-          is_blacklisted: false,
-        });
-
-      if (error) throw error;
+      studentStorage.add({
+        name: manualForm.full_name,
+        class: manualForm.class_name,
+        trust_score: 100,
+        total_loans: 0,
+        active_loans: 0,
+        late_returns: 0,
+        is_blacklisted: false,
+        warning_level: 0,
+      });
 
       setToast({ message: 'Student added successfully', type: 'success' });
       setShowAddModal(false);
@@ -281,21 +257,19 @@ export function AdminStudents() {
         throw new Error('No valid data found in file');
       }
 
-      const studentsToInsert = data.map((row, index) => ({
-        student_id: `STU${Date.now().toString().slice(-6)}${index}`,
-        full_name: row.full_name,
-        class_name: row.class_name,
-        year_group: row.class_name,
+      const studentsToImport = data.map(row => ({
+        name: row.full_name,
+        class: row.class_name,
         house: row.house,
         trust_score: 100,
+        total_loans: 0,
+        active_loans: 0,
+        late_returns: 0,
         is_blacklisted: false,
+        warning_level: 0,
       }));
 
-      const { error } = await supabase
-        .from('students')
-        .insert(studentsToInsert);
-
-      if (error) throw error;
+      studentStorage.import(studentsToImport);
 
       setToast({ message: `Successfully imported ${data.length} students`, type: 'success' });
       setShowAddModal(false);
@@ -309,19 +283,13 @@ export function AdminStudents() {
     }
   }
 
-  async function handleDeleteStudent(studentId: string) {
+  function handleDeleteStudent(studentId: string) {
     if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('students')
-        .delete()
-        .eq('id', studentId);
-
-      if (error) throw error;
-
+      studentStorage.delete(studentId);
       setToast({ message: 'Student deleted successfully', type: 'success' });
       loadStudents();
     } catch (error: any) {
@@ -330,37 +298,20 @@ export function AdminStudents() {
     }
   }
 
-  async function handleBlacklistSubmit(e: React.FormEvent) {
+  function handleBlacklistSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedStudent) return;
 
     try {
-      const updateData: any = {
+      const updates: any = {
         is_blacklisted: blacklistForm.is_blacklisted,
-        blacklist_end_date: blacklistForm.is_blacklisted ? new Date(blacklistForm.blacklist_end_date).toISOString() : null,
-        blacklist_reason: blacklistForm.is_blacklisted ? blacklistForm.blacklist_reason : null,
-        updated_at: new Date().toISOString(),
       };
 
       if (blacklistForm.is_blacklisted && !selectedStudent.is_blacklisted) {
-        updateData.trust_score = Math.max(0, selectedStudent.trust_score * 0.5);
+        updates.trust_score = Math.max(0, selectedStudent.trust_score * 0.5);
       }
 
-      const { error } = await supabase
-        .from('students')
-        .update(updateData)
-        .eq('id', selectedStudent.id);
-
-      if (error) throw error;
-
-      if (blacklistForm.is_blacklisted) {
-        await supabase.from('blacklist_entries').insert({
-          student_id: selectedStudent.id,
-          end_date: new Date(blacklistForm.blacklist_end_date).toISOString(),
-          reason: blacklistForm.blacklist_reason,
-          is_active: true,
-        });
-      }
+      studentStorage.update(selectedStudent.id, updates);
 
       setShowBlacklistModal(false);
       setToast({ message: 'Student access updated', type: 'success' });
@@ -450,16 +401,16 @@ export function AdminStudents() {
                   )}
                 </button>
                 <Avatar
-                  src={student.avatar_url}
-                  name={student.full_name}
+                  src={null}
+                  name={student.name}
                   size="md"
                   showStatus={!isOverdue}
                   statusColor={student.is_blacklisted ? 'red' : 'green'}
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900">{student.full_name}</h3>
+                  <h3 className="font-semibold text-gray-900">{student.name}</h3>
                   <p className="text-sm text-gray-600">
-                    {student.class_name || student.year_group}
+                    {student.class}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -678,14 +629,14 @@ export function AdminStudents() {
           <form onSubmit={handleBlacklistSubmit} className="space-y-4">
             <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
               <Avatar
-                src={selectedStudent.avatar_url}
-                name={selectedStudent.full_name}
+                src={null}
+                name={selectedStudent.name}
                 size="lg"
               />
               <div>
-                <h3 className="font-semibold text-gray-900">{selectedStudent.full_name}</h3>
-                <p className="text-sm text-gray-600">{selectedStudent.class_name}</p>
-                <p className="text-xs text-gray-500">ID: {selectedStudent.student_id}</p>
+                <h3 className="font-semibold text-gray-900">{selectedStudent.name}</h3>
+                <p className="text-sm text-gray-600">{selectedStudent.class}</p>
+                <p className="text-xs text-gray-500">ID: {selectedStudent.id}</p>
               </div>
             </div>
 

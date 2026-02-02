@@ -93,9 +93,9 @@ export function StudentProfileModal({ isOpen, onClose, student }: StudentProfile
         }));
 
         setStats({
-          totalBorrowed,
-          activeLoans,
-          overdueCount,
+          totalBorrowed: student.total_loans || totalBorrowed,
+          activeLoans: student.active_loans || activeLoans,
+          overdueCount: student.late_returns || overdueCount,
           trustScore: student.trust_score || 50,
         });
         setRecentActivity(activity);
@@ -147,21 +147,21 @@ export function StudentProfileModal({ isOpen, onClose, student }: StudentProfile
           <div className="bg-white px-4 py-8">
             <div className="flex flex-col items-center">
               <Avatar
-                src={student.avatar_url}
-                name={student.full_name}
+                src={null}
+                name={student.name}
                 size="xl"
                 showStatus={!student.is_blacklisted}
                 statusColor={student.is_blacklisted ? 'red' : 'green'}
               />
-              <h2 className="text-2xl font-bold text-gray-900 mt-4">{student.full_name}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mt-4">{student.name}</h2>
               <div className="flex items-center gap-2 mt-2">
                 <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
-                  {student.year_group}
+                  {student.class}
                 </span>
                 <span className="text-gray-400">•</span>
                 <span className="text-gray-600">{student.house || 'No House'}</span>
               </div>
-              <p className="text-gray-500 text-sm mt-1">ID: {student.student_id}</p>
+              <p className="text-gray-500 text-sm mt-1">Local Student</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 mt-8">
@@ -198,23 +198,8 @@ export function StudentProfileModal({ isOpen, onClose, student }: StudentProfile
                   <div className="flex-1">
                     <h3 className="font-semibold text-red-900">Borrowing Suspended</h3>
                     <p className="text-sm text-red-700 mt-1">
-                      This student is currently restricted from borrowing equipment.
+                      This student is currently restricted from borrowing equipment. Contact admin for details.
                     </p>
-                    {student.blacklist_end_date && (
-                      <p className="text-sm text-red-700 mt-2">
-                        <span className="font-medium">Suspension ends:</span>{' '}
-                        {new Date(student.blacklist_end_date).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    )}
-                    {student.blacklist_reason && (
-                      <p className="text-sm text-red-700 mt-2">
-                        <span className="font-medium">Reason:</span> {student.blacklist_reason}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>

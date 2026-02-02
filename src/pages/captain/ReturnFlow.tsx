@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Toast } from '../../components/Toast';
 import { supabase } from '../../lib/supabase';
+import { studentStorage } from '../../lib/localStorage';
 
 export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
   const [loans, setLoans] = useState<any[]>([]);
@@ -26,11 +27,18 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
   async function loadLoans() {
     const { data } = await supabase
       .from('loans')
-      .select('*, student:students(*), equipment:equipment_items(*)')
+      .select('*, equipment:equipment_items(*)')
       .is('returned_at', null)
       .order('due_at', { ascending: true });
 
-    if (data) setLoans(data);
+    if (data) {
+      const students = studentStorage.getAll();
+      const loansWithStudents = data.map(loan => ({
+        ...loan,
+        student: students.find(s => s.id === loan.student_id),
+      }));
+      setLoans(loansWithStudents);
+    }
   }
 
   function filterLoans() {
@@ -39,7 +47,7 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
     if (searchQuery) {
       filtered = filtered.filter(
         loan =>
-          loan.student?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          loan.student?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           loan.equipment?.item_id.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -59,15 +67,24 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
 
   async function handleReturn(loan: any) {
     try {
+      const returnedAt = new Date().toISOString();
+      const isLate = new Date(loan.due_at) < new Date();
+
       await supabase
         .from('loans')
-        .update({ returned_at: new Date().toISOString(), status: 'returned' })
+        .update({ returned_at: returnedAt, status: 'returned' })
         .eq('id', loan.id);
 
       await supabase
         .from('equipment_items')
         .update({ status: 'available' })
         .eq('id', loan.equipment_id);
+
+      studentStorage.decrementActiveLoan(loan.student_id);
+
+      if (isLate) {
+        studentStorage.recordLateReturn(loan.student_id);
+      }
 
       setLastReturned(loan);
       setShowToast(true);
@@ -192,7 +209,7 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
                       </h3>
                       <p className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1 mb-2">
                         <span className="font-medium">👤</span>
-                        {loan.student?.full_name}
+                        {loan.student?.name}
                       </p>
                       <p
                         className={`text-sm font-semibold ${
