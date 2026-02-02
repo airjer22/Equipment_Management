@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { StudentProfileModal } from '../../components/StudentProfileModal';
 import { supabase } from '../../lib/supabase';
-import { Calendar, Plus, Upload, FileText, FileSpreadsheet, Trash2, User } from 'lucide-react';
+import { Calendar, Plus, Upload, FileText, FileSpreadsheet, Trash2, User, CheckSquare, Square } from 'lucide-react';
 import { Toast } from '../../components/Toast';
 import * as XLSX from 'xlsx';
 
@@ -38,6 +38,8 @@ export function AdminStudents() {
   const [importing, setImporting] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileStudent, setProfileStudent] = useState<Student | null>(null);
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
   const [manualForm, setManualForm] = useState({
     full_name: '',
@@ -57,6 +59,7 @@ export function AdminStudents() {
 
   useEffect(() => {
     filterStudents();
+    setSelectedStudents(new Set());
   }, [students, searchQuery]);
 
   async function loadStudents() {
@@ -118,6 +121,48 @@ export function AdminStudents() {
   function handleViewProfile(student: Student) {
     setProfileStudent(student);
     setShowProfileModal(true);
+  }
+
+  function toggleStudentSelection(studentId: string) {
+    const newSelection = new Set(selectedStudents);
+    if (newSelection.has(studentId)) {
+      newSelection.delete(studentId);
+    } else {
+      newSelection.add(studentId);
+    }
+    setSelectedStudents(newSelection);
+  }
+
+  function toggleSelectAll() {
+    if (selectedStudents.size === filteredStudents.length) {
+      setSelectedStudents(new Set());
+    } else {
+      setSelectedStudents(new Set(filteredStudents.map(s => s.id)));
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (selectedStudents.size === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .in('id', Array.from(selectedStudents));
+
+      if (error) throw error;
+
+      setToast({
+        message: `Successfully deleted ${selectedStudents.size} student${selectedStudents.size > 1 ? 's' : ''}`,
+        type: 'success'
+      });
+      setSelectedStudents(new Set());
+      setShowBulkDeleteConfirm(false);
+      loadStudents();
+    } catch (error: any) {
+      console.error('Error deleting students:', error);
+      setToast({ message: error.message || 'Failed to delete students', type: 'error' });
+    }
   }
 
   async function handleManualSubmit(e: React.FormEvent) {
@@ -326,20 +371,57 @@ export function AdminStudents() {
         </div>
       ) : (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-            Students ({filteredStudents.length})
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+              Students ({filteredStudents.length})
+            </h3>
+            <div className="flex items-center gap-3">
+              {selectedStudents.size > 0 && (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete {selectedStudents.size} Selected
+                </Button>
+              )}
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {selectedStudents.size === filteredStudents.length ? (
+                  <CheckSquare className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Square className="w-5 h-5" />
+                )}
+                Select All
+              </button>
+            </div>
+          </div>
           {filteredStudents.map((student) => {
           const isOverdue = overdueStudents.has(student.id);
+
+          const isSelected = selectedStudents.has(student.id);
 
           return (
             <div
               key={student.id}
               className={`bg-white rounded-lg shadow-md p-4 ${
                 isOverdue ? 'border-2 border-red-300' : ''
-              }`}
+              } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
             >
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => toggleStudentSelection(student.id)}
+                  className="flex-shrink-0 text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  {isSelected ? (
+                    <CheckSquare className="w-6 h-6 text-blue-600" />
+                  ) : (
+                    <Square className="w-6 h-6" />
+                  )}
+                </button>
                 <Avatar
                   src={student.avatar_url}
                   name={student.full_name}
@@ -682,6 +764,41 @@ export function AdminStudents() {
         onClose={() => setShowProfileModal(false)}
         student={profileStudent}
       />
+
+      <Modal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        title="Confirm Bulk Deletion"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-900 font-medium">
+              You are about to delete {selectedStudents.size} student{selectedStudents.size > 1 ? 's' : ''}.
+            </p>
+            <p className="text-red-800 text-sm mt-2">
+              This action cannot be undone. All associated data will be permanently removed.
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => setShowBulkDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              fullWidth
+              onClick={handleBulkDelete}
+            >
+              Delete {selectedStudents.size} Student{selectedStudents.size > 1 ? 's' : ''}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
