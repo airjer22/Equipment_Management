@@ -271,15 +271,15 @@ export function AdminInventory() {
       <div className="grid grid-cols-4 gap-3">
         {filteredItems.map((item) => (
           <div key={item.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="relative aspect-square bg-gray-100">
+            <div className="relative aspect-square bg-white">
               {item.image_url ? (
                 <img
                   src={item.image_url}
                   alt={item.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
                   <ImageIcon className="w-8 h-8 text-gray-400" />
                 </div>
               )}
@@ -344,16 +344,16 @@ export function AdminInventory() {
               Equipment Image *
             </label>
             {imagePreview ? (
-              <div className="relative">
+              <div className="relative bg-white rounded-lg border-2 border-gray-200">
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-48 object-contain rounded-lg"
                 />
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="absolute top-2 right-2 w-8 h-8 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors"
+                  className="absolute top-2 right-2 w-8 h-8 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg"
                 >
                   <X className="w-4 h-4" />
                 </button>

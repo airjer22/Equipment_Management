@@ -192,11 +192,11 @@ export function ReturnFlow({ onComplete }: { onComplete: () => void }) {
                     </div>
                   )}
                   <div className="flex items-center gap-4 p-4">
-                    <div className="relative flex-shrink-0">
+                    <div className="relative flex-shrink-0 bg-white dark:bg-gray-800 rounded-lg">
                       <img
                         src={loan.equipment?.image_url}
                         alt={loan.equipment?.name}
-                        className="w-32 h-32 object-cover rounded-lg"
+                        className="w-32 h-32 object-contain rounded-lg"
                       />
                       <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
                         ID: {loan.equipment?.item_id}

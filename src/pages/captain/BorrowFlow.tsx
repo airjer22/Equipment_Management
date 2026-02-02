@@ -261,11 +261,11 @@ export function BorrowFlow({ onComplete }: { onComplete: () => void }) {
                   isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
                 } ${isAvailable ? 'cursor-pointer hover:shadow-lg' : 'opacity-75'}`}
               >
-                <div className="relative aspect-square">
+                <div className="relative aspect-square bg-white dark:bg-gray-900">
                   <img
                     src={item.image_url}
                     alt={item.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                   {isSelected && (
                     <div className="absolute top-2 right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
