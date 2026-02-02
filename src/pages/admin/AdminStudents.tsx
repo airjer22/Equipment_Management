@@ -239,6 +239,7 @@ export function AdminStudents() {
         const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
         const nameIndex = headers.findIndex(h => h.includes('name'));
         const classIndex = headers.findIndex(h => h.includes('class'));
+        const houseIndex = headers.findIndex(h => h.includes('house'));
 
         if (nameIndex === -1 || classIndex === -1) {
           throw new Error('CSV must have "name" and "class" columns');
@@ -249,6 +250,7 @@ export function AdminStudents() {
           return {
             full_name: values[nameIndex],
             class_name: values[classIndex],
+            house: houseIndex !== -1 ? values[houseIndex] : null,
           };
         }).filter(row => row.full_name && row.class_name);
 
@@ -261,6 +263,7 @@ export function AdminStudents() {
         data = jsonData.map((row: any) => {
           const nameKey = Object.keys(row).find(k => k.toLowerCase().includes('name'));
           const classKey = Object.keys(row).find(k => k.toLowerCase().includes('class'));
+          const houseKey = Object.keys(row).find(k => k.toLowerCase().includes('house'));
 
           if (!nameKey || !classKey) {
             throw new Error('Excel must have "name" and "class" columns');
@@ -269,6 +272,7 @@ export function AdminStudents() {
           return {
             full_name: String(row[nameKey]).trim(),
             class_name: String(row[classKey]).trim(),
+            house: houseKey ? String(row[houseKey]).trim() : null,
           };
         }).filter(row => row.full_name && row.class_name);
       }
@@ -281,7 +285,8 @@ export function AdminStudents() {
         student_id: `STU${Date.now().toString().slice(-6)}${index}`,
         full_name: row.full_name,
         class_name: row.class_name,
-        year_group: 'Year 7',
+        year_group: row.class_name,
+        house: row.house,
         trust_score: 100,
         is_blacklisted: false,
       }));
