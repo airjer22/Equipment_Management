@@ -18,11 +18,7 @@ export function CaptainLayout({ children, onBackToLogin }: CaptainLayoutProps) {
     if (onBackToLogin) {
       onBackToLogin();
     } else {
-      try {
-        await signOut();
-      } catch (error) {
-        console.error('Error signing out:', error);
-      }
+      await signOut();
     }
   };
 
